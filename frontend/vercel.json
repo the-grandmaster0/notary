@@ -9,6 +9,9 @@
       "dest": "https://notary-xogu.onrender.com/uploads/$1"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
