@@ -239,6 +239,129 @@ The `dist/` folder contains the optimized static assets including the service wo
 
 ---
 
+## Deploying (Vercel + Render)
+
+This app uses a split deployment — **Vercel** for the React frontend and **Render** for the Node/Express backend.
+
+### Step 1 — Push to GitHub
+
+Make sure your code is in a GitHub repository. If not:
+
+```bash
+git init
+git add .
+git commit -m "initial commit"
+git remote add origin https://github.com/your-username/notary-app.git
+git push -u origin main
+```
+
+---
+
+### Step 2 — Deploy the backend on Render
+
+1. Go to [render.com](https://render.com) → **New** → **Web Service**
+2. Connect your GitHub repo
+3. Configure the service:
+
+| Setting | Value |
+|---|---|
+| **Root Directory** | `backend` |
+| **Runtime** | `Node` |
+| **Build Command** | `npm install` |
+| **Start Command** | `npm start` |
+
+4. Under **Environment Variables**, add these:
+
+| Key | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `MONGO_URI` | Your MongoDB Atlas connection string |
+| `JWT_SECRET` | Your secret key |
+| `FRONTEND_URL` | Leave blank for now — fill in after Step 3 |
+
+5. Click **Deploy**. Once it's live, copy your Render URL — it looks like `https://notary-api.onrender.com`
+
+---
+
+### Step 3 — Configure the frontend for production
+
+Open `frontend/vercel.json` and replace `your-backend.onrender.com` with your actual Render URL:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://notary-api.onrender.com/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://notary-api.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+Commit and push this change:
+
+```bash
+git add frontend/vercel.json
+git commit -m "add render backend url to vercel config"
+git push
+```
+
+---
+
+### Step 4 — Deploy the frontend on Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **Add New Project**
+2. Import your GitHub repo
+3. Configure the project:
+
+| Setting | Value |
+|---|---|
+| **Root Directory** | `frontend` |
+| **Framework Preset** | Vite |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `dist` |
+
+4. No environment variables needed on Vercel — `vercel.json` handles the API proxy
+5. Click **Deploy**. Copy your Vercel URL — e.g. `https://notary-app.vercel.app`
+
+---
+
+### Step 5 — Link them together
+
+Go back to your **Render dashboard** → your backend service → **Environment** → set:
+
+```
+FRONTEND_URL = https://notary-app.vercel.app
+```
+
+Click **Save Changes** — Render will redeploy automatically. This allows the backend CORS to accept requests from your Vercel domain.
+
+---
+
+### How it works in production
+
+```
+Browser → Vercel (static files)
+              ↓ /api/* requests
+         Vercel rewrites → Render (Express API)
+              ↓
+         MongoDB Atlas
+```
+
+Vercel serves the React app. Any `/api/` or `/uploads/` request is transparently proxied to Render via `vercel.json`. The browser always talks to one domain (`vercel.app`), so cookies work correctly.
+
+---
+
+---
+
 ## Installing as a PWA
 
 Once deployed, open the app in Chrome or Edge:

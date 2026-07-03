@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: notary-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false        # Set manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false        # Set manually in Render dashboard
+      - key: FRONTEND_URL
+        sync: false        # Set to your Vercel URL e.g. https://notary-app.vercel.app
