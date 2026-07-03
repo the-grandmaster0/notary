@@ -29,7 +29,7 @@ app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 const allowedOrigins = process.env.NODE_ENV === "production"
-    ? [process.env.FRONTEND_URL].filter(Boolean)
+    ? ["https://notary-beta.vercel.app"]
     : ["http://localhost:5173", "http://localhost:5174"];
 
 app.use(cors({

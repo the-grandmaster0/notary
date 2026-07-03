@@ -6,7 +6,7 @@ frontend/node_modules/
 # Environment variables — never commit these
 backend/.env
 frontend/.env.local
-frontend/.env.production.local
+frontend/.env.production
 
 # Build output
 frontend/dist/
