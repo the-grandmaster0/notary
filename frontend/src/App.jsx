@@ -13,8 +13,13 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-theme-bg flex items-center justify-center">
-        <span className="text-theme-text-dim text-lg tracking-widest animate-pulse">NOTARY</span>
+      <div style={{ minHeight: "100vh", background: "#09090b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+          <img src="/icons/icon-192.png" alt="Notary" style={{ width: 64, height: 64, borderRadius: 16, opacity: 0.9 }} />
+          <span style={{ color: "#94a3b8", fontSize: "14px", letterSpacing: "0.2em", fontFamily: "monospace" }}>
+            Loading…
+          </span>
+        </div>
       </div>
     );
   }
