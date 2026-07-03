@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Landing from "./pages/Landing";
 import Trash from "./pages/Trash";
+import InstallPrompt from "./components/InstallPrompt";
 
 function App() {
   const { authUser, loading } = useAuthContext();
@@ -32,6 +33,8 @@ function App() {
       </footer>
       {/* Toasts in bottom-right so they don't cover the navbar */}
       <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
+      {/* PWA install prompt */}
+      <InstallPrompt />
     </div>
   );
 }

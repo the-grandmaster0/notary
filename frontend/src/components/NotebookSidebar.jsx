@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import {
-    MdBook, MdAdd, MdEdit, MdDelete, MdCheck, MdClose, MdBookmarkBorder,
+    MdAdd, MdEdit, MdDelete, MdCheck, MdClose, MdBookmarkBorder,
 } from "react-icons/md";
 import { toast } from "react-hot-toast";
+import { useNotebookContext } from "../context/NotebookContext";
 import ConfirmModal from "./ConfirmModal";
 
-// Notebook accent colors
 const NB_COLORS = [
     { id: "default", cls: "bg-theme-text-dim" },
     { id: "red",     cls: "bg-red-400" },
@@ -22,7 +22,6 @@ function getDotClass(colorId) {
     return NB_COLORS.find(c => c.id === colorId)?.cls || "bg-theme-text-dim";
 }
 
-// Inline edit / create form
 const NotebookForm = ({ initial = { name: "", color: "default" }, onSave, onCancel, label = "Create" }) => {
     const [name, setName] = useState(initial.name);
     const [color, setColor] = useState(initial.color);
@@ -44,22 +43,30 @@ const NotebookForm = ({ initial = { name: "", color: "default" }, onSave, onCanc
                 maxLength={40}
                 className="w-full bg-theme-bg border border-theme-border rounded px-2 py-1.5 text-theme-text text-xs focus:border-white focus:outline-none transition-colors"
             />
-            {/* Color dots */}
             <div className="flex gap-1.5 flex-wrap">
                 {NB_COLORS.map(c => (
                     <button
                         key={c.id}
                         type="button"
                         onClick={() => setColor(c.id)}
-                        className={`w-4 h-4 rounded-full ${c.cls} transition-transform ${color === c.id ? "scale-125 ring-2 ring-white" : "opacity-60 hover:opacity-100"}`}
+                        className={`w-4 h-4 rounded-full ${c.cls} transition-transform ${
+                            color === c.id ? "scale-125 ring-2 ring-white" : "opacity-60 hover:opacity-100"
+                        }`}
                     />
                 ))}
             </div>
             <div className="flex gap-2">
-                <button type="submit" className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-theme-text text-theme-bg font-semibold hover:opacity-90 transition-opacity">
+                <button
+                    type="submit"
+                    className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-theme-text text-theme-bg font-semibold hover:opacity-90 transition-opacity"
+                >
                     <MdCheck size={13} /> {label}
                 </button>
-                <button type="button" onClick={onCancel} className="text-xs px-2 py-1 rounded text-theme-text-dim hover:text-theme-text transition-colors">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="text-xs px-2 py-1 rounded text-theme-text-dim hover:text-theme-text transition-colors"
+                >
                     <MdClose size={13} />
                 </button>
             </div>
@@ -67,7 +74,8 @@ const NotebookForm = ({ initial = { name: "", color: "default" }, onSave, onCanc
     );
 };
 
-const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksChange }) => {
+const NotebookSidebar = ({ activeNotebookId, onSelect }) => {
+    const { notebooks, setNotebooks } = useNotebookContext();
     const [creating, setCreating] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, name: "" });
@@ -82,7 +90,7 @@ const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksCha
             });
             const data = await res.json();
             if (res.ok) {
-                onNotebooksChange([...notebooks, data]);
+                setNotebooks(prev => [...prev, data]);
                 setCreating(false);
                 toast.success(`Notebook "${name}" created`);
             } else {
@@ -103,7 +111,7 @@ const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksCha
             });
             const data = await res.json();
             if (res.ok) {
-                onNotebooksChange(notebooks.map(nb => nb._id === id ? data : nb));
+                setNotebooks(prev => prev.map(nb => nb._id === id ? data : nb));
                 setEditingId(null);
                 toast.success("Notebook updated");
             } else {
@@ -118,10 +126,13 @@ const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksCha
         const { id, name } = confirmDelete;
         setConfirmDelete({ open: false, id: null, name: "" });
         try {
-            const res = await fetch(`/api/notebooks/${id}`, { method: "DELETE", credentials: "include" });
+            const res = await fetch(`/api/notebooks/${id}`, {
+                method: "DELETE",
+                credentials: "include",
+            });
             const data = await res.json();
             if (res.ok) {
-                onNotebooksChange(notebooks.filter(nb => nb._id !== id));
+                setNotebooks(prev => prev.filter(nb => nb._id !== id));
                 if (activeNotebookId === id) onSelect(null);
                 toast.success(`Notebook "${name}" deleted`);
             } else {
@@ -136,24 +147,31 @@ const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksCha
         <aside className="w-56 shrink-0 flex flex-col gap-1">
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-xs font-semibold text-theme-text-dim uppercase tracking-wider">Notebooks</span>
+                <span className="text-xs font-semibold text-theme-text-dim uppercase tracking-wider">
+                    Notebooks
+                </span>
                 <button
                     onClick={() => { setCreating(true); setEditingId(null); }}
                     className="p-1 rounded hover:bg-theme-surface text-theme-text-dim hover:text-theme-text transition-colors"
                     title="New notebook"
+                    aria-label="Create new notebook"
                 >
                     <MdAdd size={16} />
                 </button>
             </div>
 
-            {/* New notebook form */}
+            {/* Create form */}
             {creating && (
                 <div className="bg-theme-surface border border-theme-border rounded-md mx-2 mb-1">
-                    <NotebookForm onSave={handleCreate} onCancel={() => setCreating(false)} label="Create" />
+                    <NotebookForm
+                        onSave={handleCreate}
+                        onCancel={() => setCreating(false)}
+                        label="Create"
+                    />
                 </div>
             )}
 
-            {/* All Notes entry */}
+            {/* All Notes */}
             <button
                 onClick={() => onSelect(null)}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-md mx-2 text-sm transition-colors ${
@@ -190,14 +208,17 @@ const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksCha
                             >
                                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${getDotClass(nb.color)}`} />
                                 <span className="truncate text-sm">{nb.name}</span>
-                                <span className="text-xs text-theme-text-dim/60 ml-auto shrink-0">{nb.noteCount}</span>
+                                <span className="text-xs text-theme-text-dim/60 ml-auto shrink-0">
+                                    {nb.noteCount ?? ""}
+                                </span>
                             </button>
-                            {/* Edit / delete actions — shown on hover */}
+                            {/* Hover actions */}
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setEditingId(nb._id); setCreating(false); }}
                                     className="p-0.5 hover:text-theme-text transition-colors"
                                     title="Rename"
+                                    aria-label={`Rename ${nb.name}`}
                                 >
                                     <MdEdit size={13} />
                                 </button>
@@ -205,6 +226,7 @@ const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksCha
                                     onClick={(e) => { e.stopPropagation(); setConfirmDelete({ open: true, id: nb._id, name: nb.name }); }}
                                     className="p-0.5 hover:text-red-400 transition-colors"
                                     title="Delete notebook"
+                                    aria-label={`Delete ${nb.name}`}
                                 >
                                     <MdDelete size={13} />
                                 </button>
@@ -214,6 +236,7 @@ const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksCha
                 </div>
             ))}
 
+            {/* Empty state */}
             {notebooks.length === 0 && !creating && (
                 <button
                     onClick={() => setCreating(true)}
@@ -223,7 +246,7 @@ const NotebookSidebar = ({ notebooks, activeNotebookId, onSelect, onNotebooksCha
                 </button>
             )}
 
-            {/* Confirm delete */}
+            {/* Delete confirm */}
             {createPortal(
                 <ConfirmModal
                     isOpen={confirmDelete.open}

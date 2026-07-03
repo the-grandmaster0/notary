@@ -19,17 +19,20 @@ import jsPDF from "jspdf";
 
 const EMPTY_NOTE = { title: "", content: "", tags: [], color: "default", notebookId: null };
 
+// Keyboard shortcut hook — uses ref so callback is never stale
 function useShortcut(key, callback) {
+    const cbRef = useRef(callback);
+    useEffect(() => { cbRef.current = callback; });
     useEffect(() => {
         const handler = (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === key) {
                 e.preventDefault();
-                callback();
+                cbRef.current();
             }
         };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
-    }, [key, callback]);
+    }, [key]);
 }
 
 const Home = () => {
@@ -45,28 +48,34 @@ const Home = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [activeTag, setActiveTag] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState({ open: false, noteId: null });
-    const [searchParams] = useSearchParams();
-    const showStarredOnly = searchParams.get("type") === "starred";
-    // Support ?notebook= param from mobile menu links
-    const notebookParam = searchParams.get("notebook");
+    const [hasDraft, setHasDraft] = useState(false);
     const searchRef = useRef(null);
     const { saveDraft, loadDraft, clearDraft } = useDraft();
-    const [hasDraft, setHasDraft] = useState(false);
 
-    // Sync activeNotebookId from URL param
+    // Read URL params — support ?notebook= from mobile menu and ?type=starred
+    const [searchParams, setSearchParams] = useSearchParams();
+    const showStarredOnly = searchParams.get("type") === "starred";
+    const notebookParam = searchParams.get("notebook");
+
+    // Consume ?notebook= param once, then remove it from URL
     useEffect(() => {
-        if (notebookParam) setActiveNotebookId(notebookParam);
-    }, [notebookParam]);
+        if (notebookParam) {
+            setActiveNotebookId(notebookParam);
+            setSearchParams(prev => { prev.delete("notebook"); return prev; }, { replace: true });
+        }
+    }, [notebookParam, setSearchParams]);
 
-    useShortcut("n", useCallback(() => openModal(), []));
-    useShortcut("f", useCallback(() => searchRef.current?.focus(), []));
+    // Keyboard shortcuts
+    useShortcut("n", () => openModal());
+    useShortcut("f", () => searchRef.current?.focus());
 
+    // Check for saved draft on mount
     useEffect(() => {
         const draft = loadDraft();
         if (draft && !draft._id) setHasDraft(true);
     }, [loadDraft]);
 
-    const fetchNotes = useCallback(async (q = searchQuery, t = activeTag, nb = activeNotebookId) => {
+    const fetchNotes = useCallback(async (q, t, nb) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -82,7 +91,7 @@ const Home = () => {
         } finally {
             setLoading(false);
         }
-    }, [searchQuery, activeTag, activeNotebookId]);
+    }, []);
 
     const fetchTags = useCallback(async () => {
         try {
@@ -91,17 +100,19 @@ const Home = () => {
         } catch { /* silent */ }
     }, []);
 
+    // Initial load
     useEffect(() => {
-        fetchNotes();
+        fetchNotes(searchQuery, activeTag, activeNotebookId);
         fetchTags();
         fetchNotebooks();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Debounced search / filter
+    // Debounced re-fetch whenever filters change
     useEffect(() => {
         const t = setTimeout(() => fetchNotes(searchQuery, activeTag, activeNotebookId), 300);
         return () => clearTimeout(t);
-    }, [searchQuery, activeTag, activeNotebookId]);
+    }, [searchQuery, activeTag, activeNotebookId, fetchNotes]);
 
     const handleNotebookSelect = (id) => {
         setActiveNotebookId(id);
@@ -113,22 +124,17 @@ const Home = () => {
         if (note) {
             setIsEditing(true);
             setCurrentNote({
+                _id: note._id,
                 title: note.title,
                 content: note.content,
                 tags: note.tags || [],
                 color: note.color || "default",
                 notebookId: note.notebookId || null,
-                _id: note._id,
             });
         } else {
             setIsEditing(false);
             const draft = loadDraft();
-            if (draft && !draft._id) {
-                setCurrentNote(draft);
-            } else {
-                // Pre-select current notebook
-                setCurrentNote({ ...EMPTY_NOTE, notebookId: activeNotebookId });
-            }
+            setCurrentNote(draft && !draft._id ? draft : { ...EMPTY_NOTE, notebookId: activeNotebookId });
         }
         setIsModalOpen(true);
     };
@@ -139,7 +145,7 @@ const Home = () => {
         setIsEditing(false);
     };
 
-    // Auto-save draft (new notes only)
+    // Auto-save draft while typing (new notes only)
     useEffect(() => {
         if (!isModalOpen || isEditing) return;
         if (!currentNote.title && !currentNote.content) return;
@@ -174,9 +180,9 @@ const Home = () => {
                 closeModal();
                 clearDraft();
                 setHasDraft(false);
-                fetchNotes();
+                fetchNotes(searchQuery, activeTag, activeNotebookId);
                 fetchTags();
-                fetchNotebooks(); // refresh counts
+                fetchNotebooks();
             } else {
                 toast.error(data.error);
             }
@@ -234,7 +240,7 @@ const Home = () => {
         doc.text(new Date(note.updatedAt).toLocaleDateString(), margin, 28);
         doc.setTextColor(0);
         let y = 36;
-        if (note.tags && note.tags.length > 0) {
+        if (note.tags?.length > 0) {
             doc.setFontSize(9);
             doc.text(`Tags: ${note.tags.map(t => `#${t}`).join(" ")}`, margin, y);
             y += 8;
@@ -251,40 +257,32 @@ const Home = () => {
 
     const filteredNotes = showStarredOnly ? notes.filter(n => n.isStarred) : notes;
     const sortedNotes = [...filteredNotes].sort((a, b) => Number(b.isStarred) - Number(a.isStarred));
-
     const activeNotebook = notebooks.find(nb => nb._id === activeNotebookId);
-
-    const pageTitle = showStarredOnly
-        ? "Starred Notes"
-        : activeNotebook
-            ? activeNotebook.name
-            : activeTag
-                ? `#${activeTag}`
-                : "All Notes";
+    const pageTitle = showStarredOnly ? "Starred Notes"
+        : activeNotebook ? activeNotebook.name
+        : activeTag ? `#${activeTag}`
+        : "All Notes";
 
     return (
         <div className="min-h-screen bg-theme-bg pb-16">
             <Navbar />
 
             <div className="max-w-7xl mx-auto px-4 pt-24 flex gap-6">
-                {/* Notebook Sidebar — visible from md screens up */}
+                {/* Notebook Sidebar — md+ only */}
                 {sidebarOpen && (
                     <div className="hidden md:block">
                         <NotebookSidebar
-                            notebooks={notebooks}
                             activeNotebookId={activeNotebookId}
                             onSelect={handleNotebookSelect}
-                            onNotebooksChange={setNotebooks}
                         />
                     </div>
                 )}
 
                 {/* Main content */}
                 <div className="flex-1 min-w-0">
-                    {/* Header row */}
+                    {/* Header */}
                     <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-6">
                         <div className="flex items-center gap-2">
-                            {/* Sidebar toggle — always shown on md+ */}
                             <button
                                 onClick={() => setSidebarOpen(p => !p)}
                                 className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-theme-border text-theme-text-dim hover:text-theme-text hover:border-theme-text transition-colors text-xs"
@@ -296,7 +294,6 @@ const Home = () => {
                             <h2 className="text-2xl font-semibold text-theme-text">{pageTitle}</h2>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
-                            {/* Search */}
                             <div className="relative flex-1 sm:w-56">
                                 <MdSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-text-dim pointer-events-none" />
                                 <input
@@ -313,7 +310,6 @@ const Home = () => {
                                     </button>
                                 )}
                             </div>
-                            {/* Create */}
                             <button
                                 onClick={() => openModal()}
                                 className="relative px-4 py-2 rounded-md bg-theme-text text-theme-bg font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5 text-sm whitespace-nowrap"
@@ -324,7 +320,6 @@ const Home = () => {
                                     <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-yellow-400 rounded-full border-2 border-theme-bg" title="Unsaved draft" />
                                 )}
                             </button>
-                            {/* Trash */}
                             <Link
                                 to="/trash"
                                 className="px-3 py-2 rounded-md border border-theme-border text-theme-text-dim hover:text-theme-text hover:border-theme-text transition-colors"
@@ -335,7 +330,7 @@ const Home = () => {
                         </div>
                     </div>
 
-                    {/* Mobile notebook strip — shows on small screens */}
+                    {/* Mobile notebook pills */}
                     <div className="flex md:hidden gap-2 overflow-x-auto pb-1 mb-4">
                         <button
                             onClick={() => handleNotebookSelect(null)}
@@ -398,7 +393,7 @@ const Home = () => {
                                 <NoteCard
                                     key={note._id}
                                     note={note}
-                                    notebook={notebooks.find(nb => nb._id === note.notebookId)}
+                                    notebook={notebooks.find(nb => nb._id === (note.notebookId?._id ?? note.notebookId))}
                                     onDelete={handleDeleteRequest}
                                     onEdit={openModal}
                                     onStar={handleStarNote}
@@ -409,15 +404,11 @@ const Home = () => {
                     ) : (
                         <div className="text-center py-24 border border-dashed border-theme-border rounded-lg">
                             <p className="text-theme-text-dim text-sm">
-                                {searchQuery
-                                    ? `No notes match "${searchQuery}"`
-                                    : showStarredOnly
-                                        ? "No starred notes."
-                                        : activeNotebook
-                                            ? `No notes in "${activeNotebook.name}" yet.`
-                                            : activeTag
-                                                ? `No notes tagged #${activeTag}`
-                                                : "No notes yet. Create one to get started."}
+                                {searchQuery ? `No notes match "${searchQuery}"`
+                                    : showStarredOnly ? "No starred notes."
+                                    : activeNotebook ? `No notes in "${activeNotebook.name}" yet.`
+                                    : activeTag ? `No notes tagged #${activeTag}`
+                                    : "No notes yet. Create one to get started."}
                             </p>
                             {!searchQuery && !showStarredOnly && (
                                 <button onClick={() => openModal()} className="mt-4 px-5 py-2 rounded-md bg-theme-text text-theme-bg text-sm font-semibold hover:opacity-90 transition-opacity">
@@ -429,7 +420,7 @@ const Home = () => {
                 </div>
             </div>
 
-            {/* Confirm delete */}
+            {/* Confirm delete modal */}
             <ConfirmModal
                 isOpen={confirmDelete.open}
                 title="Move to Trash?"
@@ -444,7 +435,7 @@ const Home = () => {
             {isModalOpen && createPortal(
                 <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
                     <div className="bg-theme-surface border border-theme-border rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
-                        {/* Header */}
+                        {/* Modal header */}
                         <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-theme-border shrink-0">
                             <h3 className="text-lg font-bold text-theme-text">
                                 {isEditing ? "Edit Note" : "Create Note"}
@@ -454,9 +445,8 @@ const Home = () => {
                             </button>
                         </div>
 
-                        {/* Body */}
+                        {/* Modal body */}
                         <div className="flex flex-col gap-4 px-6 py-4 overflow-y-auto flex-1">
-                            {/* Title */}
                             <div>
                                 <label className="block text-xs font-medium text-theme-text-dim mb-1.5">Title *</label>
                                 <input
@@ -470,7 +460,6 @@ const Home = () => {
                                 />
                             </div>
 
-                            {/* Notebook picker */}
                             <div>
                                 <label className="block text-xs font-medium text-theme-text-dim mb-1.5">Notebook</label>
                                 <select
@@ -485,7 +474,6 @@ const Home = () => {
                                 </select>
                             </div>
 
-                            {/* Rich editor */}
                             <div>
                                 <label className="block text-xs font-medium text-theme-text-dim mb-1.5">Content *</label>
                                 <RichEditor
@@ -494,7 +482,6 @@ const Home = () => {
                                 />
                             </div>
 
-                            {/* Tags */}
                             <div>
                                 <label className="block text-xs font-medium text-theme-text-dim mb-1.5">Tags</label>
                                 <TagInput
@@ -503,7 +490,6 @@ const Home = () => {
                                 />
                             </div>
 
-                            {/* Card color */}
                             <div>
                                 <label className="block text-xs font-medium text-theme-text-dim mb-1.5">Card Color</label>
                                 <div className="flex gap-2 flex-wrap">
@@ -522,7 +508,7 @@ const Home = () => {
                             </div>
                         </div>
 
-                        {/* Footer */}
+                        {/* Modal footer */}
                         <div className="flex justify-between items-center px-6 py-4 border-t border-theme-border shrink-0">
                             <div>
                                 {!isEditing && hasDraft && (
