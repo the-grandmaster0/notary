@@ -7,11 +7,13 @@ const generateTokenAndSetCookie = (userId, res) => {
         expiresIn: '15d'
     });
 
+    const isProd = process.env.NODE_ENV === "production";
+
     res.cookie("jwt", token, {
         maxAge: 15 * 24 * 60 * 60 * 1000, // 15 days
-        httpOnly: true,       // prevent XSS attacks
-        sameSite: "strict",   // prevent CSRF attacks
-        secure: process.env.NODE_ENV !== "development"
+        httpOnly: true,          // prevent XSS
+        sameSite: isProd ? "none" : "strict", // "none" required for cross-domain in prod
+        secure: isProd,          // must be true when sameSite=none
     });
 };
 
@@ -84,7 +86,13 @@ export const login = async (req, res) => {
 
 export const logout = (req, res) => {
     try {
-        res.cookie("jwt", "", { maxAge: 0 });
+        const isProd = process.env.NODE_ENV === "production";
+        res.cookie("jwt", "", {
+            maxAge: 0,
+            httpOnly: true,
+            sameSite: isProd ? "none" : "strict",
+            secure: isProd,
+        });
         res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
         console.log("Error in logout controller", error.message);
