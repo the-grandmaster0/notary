@@ -1,0 +1,12 @@
+{
+  "name": "notary-app",
+  "version": "1.0.0",
+  "description": "MERN Note Taking App",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install"
+  },
+  "author": "",
+  "license": "ISC"
+}
