@@ -6,7 +6,7 @@ import useLogout from "../hooks/useLogout";
 import {
     MdDarkMode, MdLightMode, MdSettings, MdLogout,
     MdMenu, MdClose, MdStar, MdDeleteOutline,
-    MdAdd, MdBook, MdCheck, MdBookmarkBorder,
+    MdAdd, MdBook, MdCheck, MdBookmarkBorder, MdPersonOff,
 } from "react-icons/md";
 import ProfileModal from "./ProfileModal";
 import ConfirmModal from "./ConfirmModal";
@@ -47,7 +47,7 @@ const Navbar = () => {
     const [nbColor, setNbColor] = useState("default");
     const [nbLoading, setNbLoading] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null); // { _id, name }
-
+    const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
     const dropdownRef = useRef(null);
     const mobileMenuRef = useRef(null);
 
@@ -108,6 +108,24 @@ const Navbar = () => {
             }
         } catch {
             toast.error("Failed to delete notebook");
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        setConfirmDeleteAccount(false);
+        try {
+            const res = await fetch("/api/auth/account", { method: "DELETE", credentials: "include" });
+            const data = await res.json();
+            if (res.ok) {
+                toast.success("Account deleted");
+                localStorage.removeItem("notary-user");
+                // Force page reload to clear all state and redirect to landing
+                window.location.href = "/";
+            } else {
+                toast.error(data.error || "Failed to delete account");
+            }
+        } catch {
+            toast.error("Failed to delete account");
         }
     };
 
@@ -177,11 +195,17 @@ const Navbar = () => {
                                                 <MdDeleteOutline size={16} className="text-theme-text-dim" /> Trash
                                             </Link>
                                             <button onClick={() => { setIsProfileModalOpen(true); setIsDropdownOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-theme-text hover:bg-theme-bg flex items-center gap-2 transition-colors">
-                                                <MdSettings size={16} /> Set Profile Picture
+                                                <MdSettings size={16} /> Profile
                                             </button>
                                             <div className="border-t border-theme-border mt-1 pt-1">
                                                 <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-theme-bg flex items-center gap-2 transition-colors">
                                                     <MdLogout size={16} /> Logout
+                                                </button>
+                                                <button
+                                                    onClick={() => { setConfirmDeleteAccount(true); setIsDropdownOpen(false); }}
+                                                    className="w-full text-left px-4 py-2 text-sm text-red-500/70 hover:bg-theme-bg flex items-center gap-2 transition-colors"
+                                                >
+                                                    <MdPersonOff size={16} /> Delete Account
                                                 </button>
                                             </div>
                                         </div>
@@ -313,10 +337,16 @@ const Navbar = () => {
                                 {/* Bottom actions */}
                                 <div className="border-t border-theme-border/50 pt-2 mt-1 space-y-1">
                                     <button onClick={() => { setIsProfileModalOpen(true); closeMobileMenu(); }} className="w-full text-left px-4 py-3 text-theme-text hover:bg-theme-surface rounded-md flex items-center gap-3 transition-colors">
-                                        <MdSettings size={20} /> Set Profile Picture
+                                        <MdSettings size={20} /> Profile
                                     </button>
                                     <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-red-500 hover:bg-theme-surface rounded-md flex items-center gap-3 transition-colors">
                                         <MdLogout size={20} /> Logout
+                                    </button>
+                                    <button
+                                        onClick={() => { setConfirmDeleteAccount(true); closeMobileMenu(); }}
+                                        className="w-full text-left px-4 py-3 text-red-500/70 hover:bg-theme-surface rounded-md flex items-center gap-3 transition-colors"
+                                    >
+                                        <MdPersonOff size={20} /> Delete Account
                                     </button>
                                 </div>
                             </>
@@ -340,6 +370,16 @@ const Navbar = () => {
                 danger
                 onConfirm={handleDeleteNotebook}
                 onCancel={() => setDeleteTarget(null)}
+            />
+
+            <ConfirmModal
+                isOpen={confirmDeleteAccount}
+                title="Delete Account?"
+                message="This will permanently delete your account, all your notes, and all your notebooks. This cannot be undone."
+                confirmLabel="Delete My Account"
+                danger
+                onConfirm={handleDeleteAccount}
+                onCancel={() => setConfirmDeleteAccount(false)}
             />
         </nav>
     );

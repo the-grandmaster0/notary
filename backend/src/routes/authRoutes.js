@@ -1,5 +1,5 @@
 import express from 'express';
-import { getMe, login, logout, signup, updateProfile, removeProfilePic } from '../controllers/authController.js';
+import { getMe, login, logout, signup, updateProfile, removeProfilePic, deleteAccount, updateUsername } from '../controllers/authController.js';
 import { protectRoute } from '../middleware/authMiddleware.js';
 import multer from 'multer';
 import path from 'path';
@@ -42,5 +42,7 @@ router.post("/login", login);
 router.post("/logout", logout);
 router.put("/profile", protectRoute, upload.single('profilePic'), updateProfile);
 router.delete("/profile", protectRoute, removeProfilePic);
+router.patch("/username", protectRoute, updateUsername);
+router.delete("/account", protectRoute, deleteAccount);
 
 export default router;

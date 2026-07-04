@@ -301,7 +301,7 @@ const Home = () => {
                                     type="text"
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
-                                    placeholder="Search… (Ctrl+F)"
+                                    placeholder="Search…"
                                     className="w-full pl-8 pr-7 py-2 bg-theme-surface border border-theme-border rounded-md text-theme-text text-sm placeholder-theme-text-dim focus:outline-none focus:border-white transition-colors"
                                 />
                                 {searchQuery && (
@@ -312,7 +312,7 @@ const Home = () => {
                             </div>
                             <button
                                 onClick={() => openModal()}
-                                className="relative px-4 py-2 rounded-md bg-theme-text text-theme-bg font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5 text-sm whitespace-nowrap"
+                                className="relative hidden sm:flex px-4 py-2 rounded-md bg-theme-text text-theme-bg font-semibold hover:opacity-90 transition-opacity items-center gap-1.5 text-sm whitespace-nowrap"
                                 title="New note (Ctrl+N)"
                             >
                                 <MdAdd size={18} /> Create Note
@@ -420,6 +420,19 @@ const Home = () => {
                 </div>
             </div>
 
+            {/* Mobile FAB — create note */}
+            <button
+                onClick={() => openModal()}
+                className="sm:hidden fixed bottom-6 right-5 z-40 w-14 h-14 rounded-full bg-theme-text text-theme-bg shadow-2xl flex items-center justify-center hover:opacity-90 transition-opacity active:scale-95"
+                title="New note"
+                aria-label="Create new note"
+            >
+                <MdAdd size={28} />
+                {hasDraft && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-yellow-400 rounded-full border-2 border-theme-bg" />
+                )}
+            </button>
+
             {/* Confirm delete modal */}
             <ConfirmModal
                 isOpen={confirmDelete.open}
@@ -433,25 +446,25 @@ const Home = () => {
 
             {/* Create / Edit Modal */}
             {isModalOpen && createPortal(
-                <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="bg-theme-surface border border-theme-border rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+                <div className="fixed inset-0 z-[9998] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4">
+                    <div className="bg-theme-surface border border-theme-border sm:rounded-xl w-full sm:max-w-2xl shadow-2xl flex flex-col h-[95dvh] sm:max-h-[90vh] rounded-t-2xl">
                         {/* Modal header */}
-                        <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-theme-border shrink-0">
+                        <div className="flex items-center justify-between px-4 sm:px-6 pt-4 sm:pt-5 pb-3 border-b border-theme-border shrink-0">
                             <h3 className="text-lg font-bold text-theme-text">
                                 {isEditing ? "Edit Note" : "Create Note"}
                             </h3>
-                            <button onClick={closeModal} className="text-theme-text-dim hover:text-theme-text transition-colors" aria-label="Close">
+                            <button onClick={closeModal} className="text-theme-text-dim hover:text-theme-text transition-colors p-1" aria-label="Close">
                                 <MdClose size={22} />
                             </button>
                         </div>
 
                         {/* Modal body */}
-                        <div className="flex flex-col gap-4 px-6 py-4 overflow-y-auto flex-1">
+                        <div className="flex flex-col gap-4 px-4 sm:px-6 py-4 overflow-y-auto flex-1">
                             <div>
                                 <label className="block text-xs font-medium text-theme-text-dim mb-1.5">Title *</label>
                                 <input
                                     type="text"
-                                    className="w-full bg-theme-bg border border-theme-border rounded-md px-3 py-2 text-theme-text focus:border-white focus:outline-none transition-colors text-sm"
+                                    className="w-full bg-theme-bg border border-theme-border rounded-md px-3 py-2.5 text-theme-text focus:border-white focus:outline-none transition-colors text-sm"
                                     value={currentNote.title}
                                     onChange={e => setCurrentNote(prev => ({ ...prev, title: e.target.value }))}
                                     required
@@ -465,7 +478,7 @@ const Home = () => {
                                 <select
                                     value={currentNote.notebookId || ""}
                                     onChange={e => setCurrentNote(prev => ({ ...prev, notebookId: e.target.value || null }))}
-                                    className="w-full bg-theme-bg border border-theme-border rounded-md px-3 py-2 text-theme-text text-sm focus:border-white focus:outline-none transition-colors"
+                                    className="w-full bg-theme-bg border border-theme-border rounded-md px-3 py-2.5 text-theme-text text-sm focus:border-white focus:outline-none transition-colors"
                                 >
                                     <option value="">— No notebook —</option>
                                     {notebooks.map(nb => (
@@ -499,7 +512,7 @@ const Home = () => {
                                             type="button"
                                             onClick={() => setCurrentNote(prev => ({ ...prev, color: c.id }))}
                                             title={c.label}
-                                            className={`w-7 h-7 rounded-full border-2 transition-all ${c.bg} ${
+                                            className={`w-8 h-8 rounded-full border-2 transition-all ${c.bg} ${
                                                 currentNote.color === c.id ? "border-white scale-110" : "border-transparent hover:border-theme-text-dim"
                                             }`}
                                         />
@@ -509,7 +522,7 @@ const Home = () => {
                         </div>
 
                         {/* Modal footer */}
-                        <div className="flex justify-between items-center px-6 py-4 border-t border-theme-border shrink-0">
+                        <div className="flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-t border-theme-border shrink-0">
                             <div>
                                 {!isEditing && hasDraft && (
                                     <button
@@ -526,11 +539,11 @@ const Home = () => {
                                     </span>
                                 )}
                             </div>
-                            <div className="flex gap-3">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-md text-theme-text-dim hover:text-theme-text hover:bg-theme-bg transition-colors text-sm">
+                            <div className="flex gap-2 sm:gap-3">
+                                <button type="button" onClick={closeModal} className="px-3 sm:px-4 py-2 rounded-md text-theme-text-dim hover:text-theme-text hover:bg-theme-bg transition-colors text-sm">
                                     Cancel
                                 </button>
-                                <button onClick={handleSave} className="px-5 py-2 rounded-md bg-theme-text text-theme-bg font-semibold hover:opacity-90 transition-opacity text-sm">
+                                <button onClick={handleSave} className="px-4 sm:px-5 py-2 rounded-md bg-theme-text text-theme-bg font-semibold hover:opacity-90 transition-opacity text-sm">
                                     {isEditing ? "Update" : "Save"}
                                 </button>
                             </div>

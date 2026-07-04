@@ -38,6 +38,7 @@ const Signup = () => {
                             value={inputs.username}
                             onChange={(e) => setInputs({ ...inputs, username: e.target.value })}
                         />
+                        <p className="text-xs text-theme-text-dim mt-1">Min 4 characters, must start with a letter or number</p>
                     </div>
                     <div className="mb-4">
                         <label htmlFor="email" className="block mb-2">

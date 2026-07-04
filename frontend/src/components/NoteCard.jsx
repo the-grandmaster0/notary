@@ -69,16 +69,16 @@ const NoteCard = ({ note, onDelete, onEdit, onStar, onExport, notebook }) => {
             </p>
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 pt-3 border-t border-theme-border/50">
+            <div className="flex justify-end gap-1 pt-3 border-t border-theme-border/50">
                 {onExport && (
-                    <button onClick={() => onExport(note)} className="text-theme-text-dim hover:text-theme-text transition-colors p-1" title="Export as PDF" aria-label="Export note as PDF">
+                    <button onClick={() => onExport(note)} className="text-theme-text-dim hover:text-theme-text transition-colors p-2" title="Export as PDF" aria-label="Export note as PDF">
                         <MdDownload size={18} />
                     </button>
                 )}
-                <button onClick={() => onEdit(note)} className="text-theme-text-dim hover:text-theme-text transition-colors p-1" title="Edit" aria-label="Edit note">
+                <button onClick={() => onEdit(note)} className="text-theme-text-dim hover:text-theme-text transition-colors p-2" title="Edit" aria-label="Edit note">
                     <MdEdit size={18} />
                 </button>
-                <button onClick={() => onDelete(note._id)} className="text-theme-text-dim hover:text-red-500 transition-colors p-1" title="Move to trash" aria-label="Move note to trash">
+                <button onClick={() => onDelete(note._id)} className="text-theme-text-dim hover:text-red-500 transition-colors p-2" title="Move to trash" aria-label="Move note to trash">
                     <MdDelete size={18} />
                 </button>
             </div>

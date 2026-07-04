@@ -44,6 +44,14 @@ function handleInputErrors({ username, email, password, confirmPassword }) {
         toast.error("Please fill in all fields");
         return false;
     }
+    if (username.length < 4) {
+        toast.error("Username must be at least 4 characters");
+        return false;
+    }
+    if (!/^[a-zA-Z0-9]/.test(username)) {
+        toast.error("Username must start with a letter or number");
+        return false;
+    }
     if (password !== confirmPassword) {
         toast.error("Passwords do not match");
         return false;

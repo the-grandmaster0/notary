@@ -62,15 +62,15 @@ const RichEditor = ({ content, onChange, placeholder = "Write your thoughts..." 
 
     return (
         <div className="border border-theme-border rounded-md overflow-hidden focus-within:border-white transition-colors">
-            {/* Toolbar */}
-            <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-theme-border bg-theme-surface">
-                <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold (Ctrl+B)">
+            {/* Toolbar — horizontally scrollable on mobile */}
+            <div className="flex items-center gap-0.5 p-1.5 border-b border-theme-border bg-theme-surface overflow-x-auto scrollbar-none">
+                <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold">
                     <MdFormatBold size={18} />
                 </ToolbarBtn>
-                <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic (Ctrl+I)">
+                <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic">
                     <MdFormatItalic size={18} />
                 </ToolbarBtn>
-                <ToolbarBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline (Ctrl+U)">
+                <ToolbarBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline">
                     <MdFormatUnderlined size={18} />
                 </ToolbarBtn>
                 <ToolbarBtn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough">
@@ -111,15 +111,15 @@ const RichEditor = ({ content, onChange, placeholder = "Write your thoughts..." 
                     <MdHighlight size={18} />
                 </ToolbarBtn>
                 <Divider />
-                <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} active={false} title="Undo (Ctrl+Z)">
+                <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} active={false} title="Undo">
                     <MdUndo size={18} />
                 </ToolbarBtn>
-                <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} active={false} title="Redo (Ctrl+Y)">
+                <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} active={false} title="Redo">
                     <MdRedo size={18} />
                 </ToolbarBtn>
             </div>
             {/* Editor area */}
-            <div className="p-3 bg-theme-bg min-h-[160px]">
+            <div className="p-3 bg-theme-bg min-h-[140px]">
                 <EditorContent editor={editor} />
             </div>
         </div>

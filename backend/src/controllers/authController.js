@@ -25,19 +25,26 @@ export const signup = async (req, res) => {
             return res.status(400).json({ error: "Please fill in all fields" });
         }
 
+        // Username rules: min 4 chars, must start with a letter or digit
+        if (username.length < 4) {
+            return res.status(400).json({ error: "Username must be at least 4 characters" });
+        }
+        if (!/^[a-zA-Z0-9]/.test(username)) {
+            return res.status(400).json({ error: "Username must start with a letter or number" });
+        }
+
         const userExists = await User.findOne({ $or: [{ username }, { email }] });
         if (userExists) {
-            return res.status(400).json({ error: "User already exists" });
+            if (userExists.username === username) {
+                return res.status(400).json({ error: "Username is already taken" });
+            }
+            return res.status(400).json({ error: "Email is already registered" });
         }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const newUser = new User({
-            username,
-            email,
-            password: hashedPassword
-        });
+        const newUser = new User({ username, email, password: hashedPassword });
 
         if (newUser) {
             generateTokenAndSetCookie(newUser._id, res);
@@ -149,6 +156,67 @@ export const removeProfilePic = async (req, res) => {
         res.status(200).json(updatedUser);
     } catch (error) {
         console.log("Error in removeProfilePic controller", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+export const updateUsername = async (req, res) => {
+    try {
+        const { username } = req.body;
+
+        if (!username) {
+            return res.status(400).json({ error: "Username is required" });
+        }
+        if (username.length < 4) {
+            return res.status(400).json({ error: "Username must be at least 4 characters" });
+        }
+        if (!/^[a-zA-Z0-9]/.test(username)) {
+            return res.status(400).json({ error: "Username must start with a letter or number" });
+        }
+
+        // Check uniqueness (exclude current user)
+        const existing = await User.findOne({ username, _id: { $ne: req.user._id } });
+        if (existing) {
+            return res.status(400).json({ error: "Username is already taken" });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user._id,
+            { username },
+            { new: true }
+        ).select("-password");
+
+        res.status(200).json(updatedUser);
+    } catch (error) {
+        console.log("Error in updateUsername controller", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+export const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // Delete all user data: notes, notebooks, user record
+        const Note = (await import('../models/Note.js')).default;
+        const Notebook = (await import('../models/Notebook.js')).default;
+
+        await Note.deleteMany({ userId });
+        await Notebook.deleteMany({ userId });
+        await User.findByIdAndDelete(userId);
+
+        // Clear the auth cookie
+        const isProd = process.env.NODE_ENV === "production";
+        res.cookie("jwt", "", {
+            maxAge: 0,
+            httpOnly: true,
+            sameSite: isProd ? "none" : "strict",
+            secure: isProd,
+        });
+
+        res.status(200).json({ message: "Account deleted successfully" });
+    } catch (error) {
+        console.log("Error in deleteAccount controller", error.message);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };

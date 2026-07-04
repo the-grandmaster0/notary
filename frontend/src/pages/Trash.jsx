@@ -87,13 +87,13 @@ const Trash = () => {
             <Navbar />
             <div className="max-w-7xl mx-auto px-4 pt-24">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
-                        <Link to="/" className="text-theme-text-dim hover:text-theme-text transition-colors">
+                        <Link to="/" className="text-theme-text-dim hover:text-theme-text transition-colors shrink-0">
                             <MdArrowBack size={22} />
                         </Link>
-                        <h2 className="text-2xl font-semibold text-theme-text flex items-center gap-2">
-                            <MdDeleteOutline size={26} /> Trash
+                        <h2 className="text-xl sm:text-2xl font-semibold text-theme-text flex items-center gap-2 flex-wrap">
+                            <MdDeleteOutline size={26} className="shrink-0" /> Trash
                             {notes.length > 0 && (
                                 <span className="text-sm font-normal text-theme-text-dim">({notes.length} note{notes.length !== 1 ? "s" : ""})</span>
                             )}
@@ -102,7 +102,7 @@ const Trash = () => {
                     {notes.length > 0 && (
                         <button
                             onClick={() => setConfirmEmptyTrash(true)}
-                            className="px-3 py-1.5 rounded-md border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors text-sm flex items-center gap-1.5"
+                            className="px-3 py-1.5 rounded-md border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors text-sm flex items-center gap-1.5 shrink-0"
                         >
                             <MdDeleteForever size={16} /> Empty Trash
                         </button>
@@ -149,17 +149,17 @@ const Trash = () => {
                                     <p className="text-xs text-theme-text-dim/60 mb-3">
                                         Deleted {new Date(note.deletedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                                     </p>
-                                    <div className="flex justify-end gap-2 pt-3 border-t border-theme-border/50">
+                                    <div className="flex flex-wrap justify-end gap-2 pt-3 border-t border-theme-border/50">
                                         <button
                                             onClick={() => handleRestore(note._id)}
-                                            className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors px-2 py-1 rounded border border-green-500/30 hover:border-green-400/50"
+                                            className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 transition-colors px-3 py-1.5 rounded border border-green-500/30 hover:border-green-400/50"
                                             title="Restore note"
                                         >
                                             <MdRestore size={15} /> Restore
                                         </button>
                                         <button
                                             onClick={() => setConfirmPermanent({ open: true, noteId: note._id })}
-                                            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded border border-red-500/30 hover:border-red-400/50"
+                                            className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors px-3 py-1.5 rounded border border-red-500/30 hover:border-red-400/50"
                                             title="Delete permanently"
                                         >
                                             <MdDeleteForever size={15} /> Delete Forever
